@@ -2679,7 +2679,7 @@ void t_go_generator::generate_service_server(t_service* tservice) {
     f_types_ << indent() << "  return p.processorMap" << endl;
     f_types_ << indent() << "}" << endl << endl;
     f_types_ << indent() << "func New" << serviceName << "Processor(handler " << serviceName
-               << ", interceptor HandlerInterceptor) *" << serviceName << "Processor {" << endl << endl;
+               << ", interceptor thrift.HandlerInterceptor) *" << serviceName << "Processor {" << endl << endl;
     f_types_
         << indent() << "  " << self << " := &" << serviceName
         << "Processor{handler:handler, processorMap:make(map[string]thrift.TProcessorFunction)}"
@@ -2759,7 +2759,7 @@ void t_go_generator::generate_process_function(t_service* tservice, t_function* 
   // const std::vector<t_field*>& xceptions = xs->get_members();
   f_types_ << indent() << "type " << processorName << " struct {" << endl;
   f_types_ << indent() << "  handler " << publicize(tservice->get_name()) << endl;
-  f_types_ << indent() << "  interceptor HandlerInterceptor" << endl;
+  f_types_ << indent() << "  interceptor thrift.HandlerInterceptor" << endl;
   f_types_ << indent() << "}" << endl << endl;
   f_types_ << indent() << "func (p *" << processorName
              << ") Process(ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (success bool, err "
@@ -2790,14 +2790,13 @@ void t_go_generator::generate_process_function(t_service* tservice, t_function* 
     f_types_ << "var retval " << type_to_go_type(tfunction->get_returntype()) << endl;
   }
 
-  f_types_ << indent() << "handlerFunc := func (ctx context.Context, seqId int32, iprot, oprot thrift.TProtocol) (bool, error) {" << endl;
-
   f_types_ << indent() << "var err2 error" << endl;
-  f_types_ << indent() << "if ";
 
   if (!tfunction->is_oneway()) {
     if (!tfunction->get_returntype()->is_void()) {
       f_types_ << "retval, ";
+    } else {
+        f_types_ << "_, ";
     }
   }
 
@@ -2805,7 +2804,14 @@ void t_go_generator::generate_process_function(t_service* tservice, t_function* 
   t_struct* arg_struct = tfunction->get_arglist();
   const std::vector<t_field*>& fields = arg_struct->get_members();
   vector<t_field*>::const_iterator f_iter;
-  f_types_ << "err2 = p.handler." << publicize(tfunction->get_name()) << "(";
+  f_types_ << "err2 = p.interceptor(ctx, args, func(ctx context.Context, arg interface{}, next thrift.HandlerInterceptor) (result interface{}, err error) {" << endl;
+  f_types_ << "return ";
+
+  if (tfunction->get_returntype()->is_void()) {
+      f_types_ << "nil, ";
+  }
+
+  f_types_ << "p.handler." << publicize(tfunction->get_name()) << "(";
   bool first = true;
 
   f_types_ << "ctx";
@@ -2820,7 +2826,11 @@ void t_go_generator::generate_process_function(t_service* tservice, t_function* 
     f_types_ << "args." << publicize((*f_iter)->get_name());
   }
 
-  f_types_ << "); err2 != nil {" << endl;
+  f_types_ << ")" << endl;
+
+  f_types_ << indent() << "})" << endl;
+
+  f_types_ << "if err2 != nil {" << endl;
 
   t_struct* exceptions = tfunction->get_xceptions();
   const vector<t_field*>& x_fields = exceptions->get_members();
@@ -2897,12 +2907,7 @@ void t_go_generator::generate_process_function(t_service* tservice, t_function* 
 
   f_types_ << indent() << "}" << endl << endl;
 
-  f_types_ << "if p.interceptor != nil {" << endl;
-  f_types_ << indent() << "return p.interceptor(ctx, args, func(ctx context.Context, arg interface{}, next HandlerInterceptor) (result interface{}, err error) {" << endl;
-  f_types_ << indent() << "return handlerFunc(ctx, seqId, iprot, oprot)" << endl;
-  f_types_ << "})" << endl;
-  f_types_ << "}" << endl;
-  f_types_ << indent() << "return handlerFunc(ctx, seqId, iprot, oprot)" << endl;
+
 
   indent_down();
   f_types_ << indent() << "}" << endl << endl;
