@@ -15,7 +15,7 @@ func ChainedHandlerInterceptor(interceptors ...HandlerInterceptor) HandlerInterc
 		}
 	}
 
-	chainedHandlerInterceptor := interceptors[interceptorCount]
+	chainedHandlerInterceptor := interceptors[interceptorCount-1]
 
 	for i := interceptorCount - 1; i >= 0; i-- {
 		chainedHandlerInterceptor = chainer(chainedHandlerInterceptor, interceptors[i])
