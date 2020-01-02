@@ -11,8 +11,8 @@ func ChainedHandlerInterceptor(interceptors ...HandlerInterceptor) HandlerInterc
 
 	chainer := func(currentInterceptor HandlerInterceptor, nextInterceptor HandlerInterceptor) HandlerInterceptor {
 		return func(ctx context.Context, arg interface{}, handlerFunc func(ctx context.Context, arg interface{}) (interface{}, error)) (result interface{}, err error) {
-			return nextInterceptor(ctx, arg, func(ctx context.Context, arg interface{}) (result interface{}, err error) {
-				return currentInterceptor(ctx, arg, handlerFunc)
+			return currentInterceptor(ctx, arg, func(ctx context.Context, arg interface{}) (result interface{}, err error) {
+				return nextInterceptor(ctx, arg, handlerFunc)
 			})
 		}
 	}
