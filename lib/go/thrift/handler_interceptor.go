@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type HandlerInterceptor func(ctx context.Context, arg interface{}, handlerFunc func(ctx context.Context, arg interface{}) (interface{}, error)) (result interface{}, err error)
+type HandlerInterceptor func(ctx context.Context, arg interface{}, handlerFunc func(ctx context.Context, arg interface{}) (result interface{}, err error)) (result interface{}, err error)
 
 func ChainedHandlerInterceptor(interceptors ...HandlerInterceptor) HandlerInterceptor {
 	interceptorCount := len(interceptors)
